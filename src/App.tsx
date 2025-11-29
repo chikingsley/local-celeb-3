@@ -1,6 +1,7 @@
-import { Editor, PropertiesPanel, Sidebar, Timeline } from "@/components";
+import { CommandPalette, Editor, ExportModal, FindReplace, PropertiesPanel, Sidebar, Timeline } from "@/components";
 import EditorToolbar from "@/components/EditorToolbar";
 import WelcomeScreen from "@/components/WelcomeScreen";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { fileToBase64, transcribeAudio } from "@/services/api";
 import { usePlayerStore } from "@/stores/player-store";
 import {
@@ -9,10 +10,16 @@ import {
 	useSelectedSegment,
 } from "@/stores/project-store";
 import { AppView, DEFAULT_SPEAKERS } from "@/types";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function App() {
 	const audioRef = useRef<HTMLAudioElement>(null);
+
+	// Modal states
+	const [isExportOpen, setIsExportOpen] = useState(false);
+	const [isFindOpen, setIsFindOpen] = useState(false);
+	const [showReplace, setShowReplace] = useState(false);
+	const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
 	// Project store
 	const view = useProjectStore((s) => s.view);
@@ -221,6 +228,43 @@ export default function App() {
 		[setCurrentTime]
 	);
 
+	// Keyboard shortcuts
+	useKeyboardShortcuts({
+		onTogglePlay: togglePlay,
+		onSeek: handleSeek,
+		currentTime,
+		duration,
+		onUndo: undo,
+		onRedo: redo,
+		onOpenFind: () => {
+			if (view === AppView.EDITOR) {
+				setIsFindOpen(true);
+				setShowReplace(false);
+			}
+		},
+		onOpenFindReplace: () => {
+			if (view === AppView.EDITOR) {
+				setIsFindOpen(true);
+				setShowReplace(true);
+			}
+		},
+		onOpenCommandPalette: () => {
+			if (view === AppView.EDITOR) {
+				setIsCommandPaletteOpen(true);
+			}
+		},
+		onOpenExport: () => view === AppView.EDITOR && setIsExportOpen(true),
+		onEscape: () => {
+			if (isCommandPaletteOpen) {
+				setIsCommandPaletteOpen(false);
+			} else if (isFindOpen) {
+				setIsFindOpen(false);
+			} else if (isExportOpen) {
+				setIsExportOpen(false);
+			}
+		},
+	});
+
 	// Resize handlers
 	useEffect(() => {
 		const handleMouseMove = (e: MouseEvent) => {
@@ -283,14 +327,30 @@ export default function App() {
 			) : (
 				<div className="flex-1 flex flex-col min-w-0 bg-white">
 					{/* Toolbar */}
-					<EditorToolbar canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo} />
+					<EditorToolbar
+						canUndo={canUndo}
+						canRedo={canRedo}
+						onUndo={undo}
+						onRedo={redo}
+						onExport={() => setIsExportOpen(true)}
+					/>
 
 					{/* Center Workspace */}
 					<div className="flex-1 flex overflow-hidden">
 						{/* Middle Column: Editor + Timeline */}
 						<div className="flex-1 flex flex-col min-w-0">
 							{/* Scrollable Transcript Editor */}
-							<div className="flex-1 overflow-y-auto bg-white">
+							<div className="flex-1 overflow-y-auto bg-white relative">
+								{/* Find & Replace Panel */}
+								<FindReplace
+									isOpen={isFindOpen}
+									showReplace={showReplace}
+									onClose={() => setIsFindOpen(false)}
+									segments={segments}
+									onUpdateSegment={updateSegment}
+									onSelectSegment={setSelectedSegmentId}
+								/>
+
 								<div className="max-w-4xl mx-auto py-12 px-8">
 									<Editor
 										segments={segments}
@@ -380,6 +440,45 @@ export default function App() {
 					onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
 				/>
 			)}
+
+			{/* Export Modal */}
+			<ExportModal
+				isOpen={isExportOpen}
+				onClose={() => setIsExportOpen(false)}
+				segments={segments}
+				speakers={speakers}
+				meta={meta}
+			/>
+
+			{/* Command Palette */}
+			<CommandPalette
+				isOpen={isCommandPaletteOpen}
+				onClose={() => setIsCommandPaletteOpen(false)}
+				isPlaying={isPlaying}
+				canUndo={canUndo}
+				canRedo={canRedo}
+				onTogglePlay={togglePlay}
+				onUndo={undo}
+				onRedo={redo}
+				onOpenFind={() => {
+					setIsCommandPaletteOpen(false);
+					setIsFindOpen(true);
+					setShowReplace(false);
+				}}
+				onOpenFindReplace={() => {
+					setIsCommandPaletteOpen(false);
+					setIsFindOpen(true);
+					setShowReplace(true);
+				}}
+				onOpenExport={() => {
+					setIsCommandPaletteOpen(false);
+					setIsExportOpen(true);
+				}}
+				onOpenSettings={() => {
+					setIsCommandPaletteOpen(false);
+					// TODO: Open settings modal
+				}}
+			/>
 		</div>
 	);
 }

@@ -6,9 +6,10 @@ interface EditorToolbarProps {
 	canRedo: boolean;
 	onUndo: () => void;
 	onRedo: () => void;
+	onExport: () => void;
 }
 
-export function EditorToolbar({ canUndo, canRedo, onUndo, onRedo }: EditorToolbarProps) {
+export function EditorToolbar({ canUndo, canRedo, onUndo, onRedo, onExport }: EditorToolbarProps) {
 	return (
 		<header className="h-14 border-b border-slate-200 flex items-center justify-between px-4 bg-white shrink-0 z-20">
 			<div className="flex items-center gap-4">
@@ -51,6 +52,7 @@ export function EditorToolbar({ canUndo, canRedo, onUndo, onRedo }: EditorToolba
 				</button>
 				<button
 					type="button"
+					onClick={onExport}
 					className="flex items-center gap-2 bg-slate-900 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm"
 				>
 					<Download size={16} /> Export
