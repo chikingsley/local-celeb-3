@@ -27,6 +27,7 @@ interface FindReplaceProps {
 	onUpdateSegment: (id: string, updates: Partial<Segment>) => void;
 	onSelectSegment: (id: string | null) => void;
 	onMatchesChange?: (matches: SearchMatch[], currentIndex: number, query: string) => void;
+	initialQuery?: string; // Pre-populate from selected text
 }
 
 export default function FindReplace({
@@ -37,6 +38,7 @@ export default function FindReplace({
 	onUpdateSegment,
 	onSelectSegment,
 	onMatchesChange,
+	initialQuery,
 }: FindReplaceProps) {
 	const [query, setQuery] = useState("");
 	const [replaceText, setReplaceText] = useState("");
@@ -48,6 +50,13 @@ export default function FindReplace({
 	const [regexError, setRegexError] = useState<string | null>(null);
 
 	const findInputRef = useRef<HTMLInputElement>(null);
+
+	// Set initial query when opened with selected text
+	useEffect(() => {
+		if (isOpen && initialQuery) {
+			setQuery(initialQuery);
+		}
+	}, [isOpen, initialQuery]);
 
 	// Focus find input when opened
 	useEffect(() => {

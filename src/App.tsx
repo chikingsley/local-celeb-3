@@ -28,6 +28,7 @@ export default function App() {
 	>([]);
 	const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [initialFindQuery, setInitialFindQuery] = useState("");
 
 	// Handle search matches change from FindReplace
 	const handleMatchesChange = useCallback(
@@ -260,12 +261,18 @@ export default function App() {
 		onRedo: redo,
 		onOpenFind: () => {
 			if (view === AppView.EDITOR) {
+				// Get selected text to pre-populate find field
+				const selection = window.getSelection()?.toString().trim() ?? "";
+				setInitialFindQuery(selection);
 				setIsFindOpen(true);
 				setShowReplace(false);
 			}
 		},
 		onOpenFindReplace: () => {
 			if (view === AppView.EDITOR) {
+				// Get selected text to pre-populate find field
+				const selection = window.getSelection()?.toString().trim() ?? "";
+				setInitialFindQuery(selection);
 				setIsFindOpen(true);
 				setShowReplace(true);
 			}
@@ -377,6 +384,7 @@ export default function App() {
 										onUpdateSegment={updateSegment}
 										onSelectSegment={setSelectedSegmentId}
 										onMatchesChange={handleMatchesChange}
+										initialQuery={initialFindQuery}
 									/>
 
 									<div className="max-w-4xl mx-auto py-12 px-8">
@@ -502,11 +510,15 @@ export default function App() {
 				onUndo={undo}
 				onRedo={redo}
 				onOpenFind={() => {
+					const selection = window.getSelection()?.toString().trim() ?? "";
+					setInitialFindQuery(selection);
 					setIsCommandPaletteOpen(false);
 					setIsFindOpen(true);
 					setShowReplace(false);
 				}}
 				onOpenFindReplace={() => {
+					const selection = window.getSelection()?.toString().trim() ?? "";
+					setInitialFindQuery(selection);
 					setIsCommandPaletteOpen(false);
 					setIsFindOpen(true);
 					setShowReplace(true);

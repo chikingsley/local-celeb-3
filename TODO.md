@@ -31,8 +31,9 @@
 
 ### Future Enhancements (Nice to Have)
 - [ ] Minimap with actual text rendering (VS Code style)
-- [ ] Selected text auto-populates Find field
+- [x] Selected text auto-populates Find field
 - [ ] Find in Timeline (not just Editor)
+- [ ] Word-level highlighting during playback (karaoke style)
 
 ## Phase 3 - Settings & Storage
 
