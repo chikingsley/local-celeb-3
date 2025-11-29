@@ -18,17 +18,25 @@
 - [x] Right-click context menu (assign speaker, split, copy text, delete)
 - [x] Extract snap logic to testable utilities (47 tests)
 
-## Phase 2 - Export & Productivity
+## Phase 2 - Export & Productivity ✅ MOSTLY COMPLETED
 
-- [ ] Export transcripts (TXT, SRT, VTT, JSON)
-- [ ] Keyboard shortcuts (play/pause, navigation, editing)
-- [ ] Search/filter segments
+- [x] Export transcripts (TXT, SRT, VTT, JSON, HTML, CSV) with tests
+- [x] Keyboard shortcuts (play/pause, seek, undo/redo, find, export)
+- [x] Find & Replace (match case, whole word, regex options)
+- [x] Command Palette (Cmd+K) for quick access to all features
+- [x] Search highlighting in Editor (yellow/orange backgrounds)
+- [x] Minimap with viewport indicator and search markers
 - [ ] Audio waveform visualization
 - [ ] Multiple projects support
 
+### Future Enhancements (Nice to Have)
+- [ ] Minimap with actual text rendering (VS Code style)
+- [ ] Selected text auto-populates Find field
+- [ ] Find in Timeline (not just Editor)
+
 ## Phase 3 - Settings & Storage
 
-- [ ] Settings menu (theme, shortcuts, defaults)
+- [ ] Settings menu/modal (theme, shortcuts, defaults)
 - [ ] Cloudflare R2 integration for audio storage
 - [ ] Project persistence to cloud
 - [ ] Import existing transcripts
