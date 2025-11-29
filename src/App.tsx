@@ -1,4 +1,4 @@
-import { CommandPalette, Editor, ExportModal, FindReplace, PropertiesPanel, Sidebar, Timeline } from "@/components";
+import { CommandPalette, Editor, ExportModal, FindReplace, Minimap, PropertiesPanel, Sidebar, Timeline } from "@/components";
 import EditorToolbar from "@/components/EditorToolbar";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -14,12 +14,34 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function App() {
 	const audioRef = useRef<HTMLAudioElement>(null);
+	const editorScrollRef = useRef<HTMLDivElement>(null);
 
 	// Modal states
 	const [isExportOpen, setIsExportOpen] = useState(false);
 	const [isFindOpen, setIsFindOpen] = useState(false);
 	const [showReplace, setShowReplace] = useState(false);
 	const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+	// Search state
+	const [searchMatches, setSearchMatches] = useState<
+		{ segmentId: string; startIndex: number; endIndex: number }[]
+	>([]);
+	const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+	const [searchQuery, setSearchQuery] = useState("");
+
+	// Handle search matches change from FindReplace
+	const handleMatchesChange = useCallback(
+		(
+			matches: { segmentId: string; startIndex: number; endIndex: number }[],
+			currentIndex: number,
+			query: string
+		) => {
+			setSearchMatches(matches);
+			setCurrentMatchIndex(currentIndex);
+			setSearchQuery(query);
+		},
+		[]
+	);
 
 	// Project store
 	const view = useProjectStore((s) => s.view);
@@ -339,28 +361,47 @@ export default function App() {
 					<div className="flex-1 flex overflow-hidden">
 						{/* Middle Column: Editor + Timeline */}
 						<div className="flex-1 flex flex-col min-w-0">
-							{/* Scrollable Transcript Editor */}
-							<div className="flex-1 overflow-y-auto bg-white relative">
-								{/* Find & Replace Panel */}
-								<FindReplace
-									isOpen={isFindOpen}
-									showReplace={showReplace}
-									onClose={() => setIsFindOpen(false)}
-									segments={segments}
-									onUpdateSegment={updateSegment}
-									onSelectSegment={setSelectedSegmentId}
-								/>
-
-								<div className="max-w-4xl mx-auto py-12 px-8">
-									<Editor
+							{/* Scrollable Transcript Editor with Minimap */}
+							<div className="flex-1 flex overflow-hidden">
+								{/* Main Editor Scroll Area */}
+								<div
+									ref={editorScrollRef}
+									className="flex-1 overflow-y-auto bg-white relative"
+								>
+									{/* Find & Replace Panel */}
+									<FindReplace
+										isOpen={isFindOpen}
+										showReplace={showReplace}
+										onClose={() => setIsFindOpen(false)}
 										segments={segments}
-										speakers={speakers}
-										selectedSegmentId={selectedSegmentId}
-										onSelectSegment={setSelectedSegmentId}
 										onUpdateSegment={updateSegment}
-										currentTime={currentTime}
+										onSelectSegment={setSelectedSegmentId}
+										onMatchesChange={handleMatchesChange}
 									/>
+
+									<div className="max-w-4xl mx-auto py-12 px-8">
+										<Editor
+											segments={segments}
+											speakers={speakers}
+											selectedSegmentId={selectedSegmentId}
+											onSelectSegment={setSelectedSegmentId}
+											onUpdateSegment={updateSegment}
+											currentTime={currentTime}
+											searchQuery={searchQuery}
+											searchMatches={searchMatches}
+											currentMatchIndex={currentMatchIndex}
+										/>
+									</div>
 								</div>
+
+								{/* Minimap */}
+								<Minimap
+									segments={segments}
+									speakers={speakers}
+									containerRef={editorScrollRef}
+									searchMatches={searchMatches}
+									currentMatchIndex={currentMatchIndex}
+								/>
 							</div>
 
 							{/* Resizable Divider */}

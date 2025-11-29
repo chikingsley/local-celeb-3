@@ -12,6 +12,13 @@ import {
 import type { Segment } from "@/types";
 import { cn } from "@/lib/utils";
 
+export interface SearchMatch {
+	segmentId: string;
+	startIndex: number;
+	endIndex: number;
+	text: string;
+}
+
 interface FindReplaceProps {
 	isOpen: boolean;
 	showReplace: boolean;
@@ -19,13 +26,7 @@ interface FindReplaceProps {
 	segments: Segment[];
 	onUpdateSegment: (id: string, updates: Partial<Segment>) => void;
 	onSelectSegment: (id: string | null) => void;
-}
-
-interface Match {
-	segmentId: string;
-	startIndex: number;
-	endIndex: number;
-	text: string;
+	onMatchesChange?: (matches: SearchMatch[], currentIndex: number, query: string) => void;
 }
 
 export default function FindReplace({
@@ -35,13 +36,14 @@ export default function FindReplace({
 	segments,
 	onUpdateSegment,
 	onSelectSegment,
+	onMatchesChange,
 }: FindReplaceProps) {
 	const [query, setQuery] = useState("");
 	const [replaceText, setReplaceText] = useState("");
 	const [caseSensitive, setCaseSensitive] = useState(false);
 	const [wholeWord, setWholeWord] = useState(false);
 	const [useRegex, setUseRegex] = useState(false);
-	const [matches, setMatches] = useState<Match[]>([]);
+	const [matches, setMatches] = useState<SearchMatch[]>([]);
 	const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 	const [regexError, setRegexError] = useState<string | null>(null);
 
@@ -54,6 +56,18 @@ export default function FindReplace({
 			findInputRef.current.select();
 		}
 	}, [isOpen]);
+
+	// Notify parent when matches change
+	useEffect(() => {
+		onMatchesChange?.(matches, currentMatchIndex, query);
+	}, [matches, currentMatchIndex, query, onMatchesChange]);
+
+	// Clear matches when closed
+	useEffect(() => {
+		if (!isOpen) {
+			onMatchesChange?.([], 0, "");
+		}
+	}, [isOpen, onMatchesChange]);
 
 	// Build search pattern
 	const buildPattern = useCallback(

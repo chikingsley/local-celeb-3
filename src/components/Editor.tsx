@@ -1,7 +1,13 @@
 import { cn, parseTime } from "@/lib/utils";
 import type { Segment, Speaker } from "@/types";
 import { Check } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+interface SearchMatch {
+	segmentId: string;
+	startIndex: number;
+	endIndex: number;
+}
 
 interface EditorProps {
 	segments: Segment[];
@@ -10,6 +16,84 @@ interface EditorProps {
 	onSelectSegment: (id: string) => void;
 	onUpdateSegment: (id: string, updates: Partial<Segment>) => void;
 	currentTime: number;
+	searchQuery?: string;
+	searchMatches?: SearchMatch[];
+	currentMatchIndex?: number;
+}
+
+/**
+ * Renders text with highlighted search matches
+ * All text is transparent - only the highlight backgrounds are visible
+ * This layer sits behind a transparent-background textarea
+ */
+function HighlightedText({
+	text,
+	matches,
+	currentMatchIndex,
+	allMatches,
+	segmentId,
+}: {
+	text: string;
+	matches: { startIndex: number; endIndex: number }[];
+	currentMatchIndex: number;
+	allMatches: SearchMatch[];
+	segmentId: string;
+}) {
+	if (matches.length === 0) {
+		return <span className="whitespace-pre-wrap text-transparent">{text}</span>;
+	}
+
+	// Sort matches by start index
+	const sortedMatches = [...matches].sort((a, b) => a.startIndex - b.startIndex);
+
+	const parts: React.ReactNode[] = [];
+	let lastIndex = 0;
+
+	sortedMatches.forEach((match, idx) => {
+		// Add text before match (transparent)
+		if (match.startIndex > lastIndex) {
+			parts.push(
+				<span key={`text-${idx}`} className="whitespace-pre-wrap text-transparent">
+					{text.substring(lastIndex, match.startIndex)}
+				</span>
+			);
+		}
+
+		// Check if this is the current match
+		const globalMatchIdx = allMatches.findIndex(
+			(m) =>
+				m.segmentId === segmentId &&
+				m.startIndex === match.startIndex &&
+				m.endIndex === match.endIndex
+		);
+		const isCurrentMatch = globalMatchIdx === currentMatchIndex;
+
+		// Add highlighted match (background visible, text transparent)
+		parts.push(
+			<mark
+				key={`match-${idx}`}
+				className={cn(
+					"rounded-sm text-transparent",
+					isCurrentMatch ? "bg-orange-300" : "bg-yellow-200"
+				)}
+			>
+				{text.substring(match.startIndex, match.endIndex)}
+			</mark>
+		);
+
+		lastIndex = match.endIndex;
+	});
+
+	// Add remaining text (transparent)
+	if (lastIndex < text.length) {
+		parts.push(
+			<span key="text-end" className="whitespace-pre-wrap text-transparent">
+				{text.substring(lastIndex)}
+			</span>
+		);
+	}
+
+	return <>{parts}</>;
 }
 
 export function Editor({
@@ -19,6 +103,9 @@ export function Editor({
 	onSelectSegment,
 	onUpdateSegment,
 	currentTime,
+	searchQuery,
+	searchMatches = [],
+	currentMatchIndex = 0,
 }: EditorProps) {
 	const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -51,6 +138,14 @@ export function Editor({
 	}, [activeSpeakerDropdown]);
 
 	const getSpeaker = (id: string) => speakers.find((s) => s.id === id) ?? speakers[0];
+
+	// Get matches for a specific segment
+	const getSegmentMatches = useCallback(
+		(segmentId: string) => {
+			return searchMatches.filter((m) => m.segmentId === segmentId);
+		},
+		[searchMatches]
+	);
 
 	return (
 		<div className="flex flex-col gap-0 pb-32 min-h-full" ref={containerRef}>
@@ -158,6 +253,21 @@ export function Editor({
 
 						{/* Right Column: Text Content */}
 						<div className="flex-grow relative">
+							{/* Highlight Layer - positioned behind textarea */}
+							{searchQuery && getSegmentMatches(segment.id).length > 0 && (
+								<div
+									className="absolute inset-0 text-lg leading-relaxed font-serif pointer-events-none text-transparent select-none"
+									aria-hidden="true"
+								>
+									<HighlightedText
+										text={segment.text}
+										matches={getSegmentMatches(segment.id)}
+										currentMatchIndex={currentMatchIndex}
+										allMatches={searchMatches}
+										segmentId={segment.id}
+									/>
+								</div>
+							)}
 							<textarea
 								ref={(el) => {
 									textareaRefs.current[segment.id] = el;
@@ -167,7 +277,12 @@ export function Editor({
 									onUpdateSegment(segment.id, { text: e.target.value });
 									adjustHeight(segment.id);
 								}}
-								className="w-full resize-none outline-none border-none text-slate-800 text-lg leading-relaxed bg-transparent focus:ring-0 p-0 placeholder-slate-300 font-serif"
+								className={cn(
+									"w-full resize-none outline-none border-none text-lg leading-relaxed focus:ring-0 p-0 placeholder-slate-300 font-serif relative z-10",
+									searchQuery && getSegmentMatches(segment.id).length > 0
+										? "text-slate-800 bg-transparent caret-slate-800"
+										: "text-slate-800 bg-transparent"
+								)}
 								placeholder="Type here..."
 								rows={1}
 								spellCheck={false}
